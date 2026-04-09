@@ -52,7 +52,11 @@ if st.button("✨ Сгенерировать описание"):
     else:
         try:
             # Инициализация клиента DeepSeek
-            client = OpenAI(api_key=api_key, base_url="https://deepseek.com")
+            client = OpenAI(
+                api_key=api_key,
+                base_url="https://deepseek.com",
+                default_headers={"User-Agent": "Mozilla/5.0"}  # Маскируемся под браузер
+            )
             
             with st.spinner('Нейросеть анализирует рынок и пишет текст...'):
                 # Формируем промпт
