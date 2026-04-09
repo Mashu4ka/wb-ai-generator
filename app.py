@@ -1,103 +1,72 @@
 import streamlit as st
-from openai import OpenAI
+from gigachat import GigaChat
 
-# 1. Настройка внешнего вида страницы
-st.set_page_config(
-    page_title="WB Ghostwriter AI", 
-    page_icon="✍️", 
-    layout="centered"
-)
+# Настройка страницы
+st.set_page_config(page_title="WB Helper AI", page_icon="📈")
 
-# Кастомный CSS для стиля (фиолетовый в стиле WB)
-st.markdown("""
-    <style>
-    .main { background-color: #f5f5f7; }
-    .stButton>button { background-color: #8a2be2; color: white; border-radius: 10px; width: 100%; }
-    </style>
-    """, unsafe_allow_html=True)
+st.title("🚀 WB Smart Assistant")
 
-st.title("📝 WB Ghostwriter AI")
-st.markdown("##### Создавай топовые описания для маркетплейсов за секунды")
-
-# 2. Боковая панель (Sidebar) для настроек
+# Авторизация в боковой панели
 with st.sidebar:
-    st.header("⚙️ Настройки ИИ")
-    # Ключ от DeepSeek (можно получить на ://deepseek.com)
-    api_key = st.text_input("Введите DeepSeek API Key", type="password")
-    
-    st.divider()
-    style = st.selectbox("Стиль текста", ["Продающий", "Заботливый", "Технический/Лаконичный"])
-    temperature = st.slider("Креативность", 0.1, 1.0, 0.7)
-    
-    st.info("DeepSeek API в 10 раз дешевле ChatGPT, поэтому мы используем его! 🚀")
+    st.header("🔑 Доступ")
+    giga_key = st.text_input("GigaChat API Key", type="password")
+    st.caption("Получи ключ на developers.sber.ru")
 
-# 3. Основная форма ввода
-col1, col2 = st.columns(2)
+# Создаем вкладки
+tab1, tab2 = st.tabs(["📝 Описания товаров", "💬 Ответы на отзывы"])
 
-with col1:
-    product_name = st.text_input("Название товара", placeholder="Например: Термос из стали")
-    features = st.text_area("Характеристики", placeholder="1 литр, держит холод 24ч, в комплекте чехол", height=150)
+# ВКЛАДКА 1: ОПИСАНИЯ
+with tab1:
+    product_name = st.text_input("Товар", placeholder="Например: Спортивная бутылка")
+    features = st.text_area("Характеристики", placeholder="Объем 0.5л, пищевой пластик")
 
-with col2:
-    keywords = st.text_area("SEO-ключи", placeholder="подарок мужчине, туризм, термос для чая", height=150)
+    if st.button("Создать описание"):
+        if not giga_key:
+            st.warning("Вставь ключ в боковую панель!")
+        else:
+            with GigaChat(credentials=giga_key, verify_ssl_certs=False) as giga:
+                prompt = f"Напиши продающее описание для WB: {product_name}. Характеристики: {features}. С эмодзи и структурой."
+                res = giga.chat(prompt)
+                st.success("Готово!")
+                st.write(res.choices[0].message.content)
 
-st.divider()
+# ВКЛАДКА 2: ОТВЕТЫ НА ОТЗЫВЫ
+with tab2:
+    st.subheader("Генератор вежливых ответов")
 
-# 4. Логика работы
-if st.button("✨ Сгенерировать описание"):
-    if not api_key:
-        st.error("Ошибка: Введите API ключ DeepSeek в боковом меню!")
-    elif not product_name:
-        st.warning("Внимание: Укажите название товара.")
-    else:
-        try:
-            # Инициализация клиента DeepSeek
-            client = OpenAI(
-                api_key=api_key,
-                base_url="https://deepseek.com",
-                default_headers={"User-Agent": "Mozilla/5.0"}  # Маскируемся под браузер
-            )
-            
-            with st.spinner('Нейросеть анализирует рынок и пишет текст...'):
-                # Формируем промпт
-                prompt = f"""
-                Ты — эксперт-копирайтер по Wildberries и Ozon. 
-                Напиши описание товара '{product_name}' в стиле '{style}'.
-                
-                ХАРАКТЕРИСТИКИ: {features}
-                ОБЯЗАТЕЛЬНЫЕ SEO-КЛЮЧИ: {keywords}
-                
-                СТРУКТУРА:
-                1. Заголовок с главным ключом.
-                2. Завлекающее вступление.
-                3. Список преимуществ с эмодзи.
-                4. Блок "Почему выбирают нас".
-                5. Призыв к действию.
-                
-                Правила: Текст должен быть легким, без 'воды', ключи вплетаются незаметно.
+    rating = st.slider("Оценка покупателя (звезд)", 1, 5, 5)
+    review_text = st.text_area("Текст отзыва покупателя", placeholder="Например: Товар пришел разбитый, я в ярости!")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        brand_name = st.text_input("Ваш бренд", value="Наш Магазин")
+    with col2:
+        add_bonus = st.checkbox("Предложить скидку/подарок за плохой отзыв")
+
+    if st.button("Сгенерировать ответ"):
+        if not giga_key:
+            st.warning("Вставь ключ в боковую панель!")
+        else:
+            with GigaChat(credentials=giga_key, verify_ssl_certs=False) as giga:
+                # Промпт для умного ответа
+                review_prompt = f"""
+                Ты — менеджер службы заботы бренда '{brand_name}'. 
+                Клиент оставил отзыв с оценкой {rating} звезд.
+                Текст отзыва: "{review_text}"
+
+                ЗАДАЧА:
+                Напиши вежливый, человечный ответ. 
+                - Если оценка 4-5: поблагодари, пригласи за новыми покупками.
+                - Если оценка 1-3: извинись, посочувствуй, предложи решение (проверить товар при получении или связаться с поддержкой).
+                {"Добавь предложение о бонусе или промокоде на следующую покупку." if add_bonus else ""}
+                Не используй шаблоны, пиши искренне.
                 """
 
-                # Запрос к DeepSeek
-                response = client.chat.completions.create(
-                    model="deepseek-chat",
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=temperature
-                )
-                
-                result_text = response.choices.message.content
-                
-                # Вывод результата
-                st.success("Готово! Текст оптимизирован для WB.")
-                st.markdown("---")
-                st.markdown(result_text)
-                
-                # Кнопка копирования
-                st.copy_to_clipboard(result_text)
-                st.toast("Текст скопирован в буфер обмена!")
-
-        except Exception as e:
-            st.error(f"Произошла ошибка: {e}")
-
-# Футер
-st.markdown("---")
-st.caption("Developed by Young Founder 🚀 | Version 1.0 (DeepSeek Powered)")
+                try:
+                    with st.spinner("Менеджер пишет ответ..."):
+                        res = giga.chat(review_prompt)
+                        answer = res.choices.message.content
+                        st.info("Рекомендуемый ответ:")
+                        st.write(answer)
+                except Exception as e:
+                    st.error(f"Произошла ошибка: {e}")
