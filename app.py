@@ -12,7 +12,7 @@ st.subheader("Генератор продающих описаний для ма
 with st.sidebar:
     st.header("Настройки")
     api_key = st.text_input("Введите API Ключ (OpenAI/GigaChat/DeepSeek)", type="password")
-    model_choice = st.selectbox("Выбор модели", ["gpt-3.5-turbo", "gpt-4-mini"])
+    model_choice = st.selectbox("Выбор модели", ["gpt-3.5-turbo", "gpt-4-mini, DeepSeek-V3.2"])
     temperature = st.slider("Креативность текста", 0.0, 1.0, 0.7)
 
 # Основной интерфейс
